@@ -1,0 +1,81 @@
+# Install SQL package
+install.packages("DBI")
+install.packages("RSQLite")
+
+# load libraries
+library(DBI)
+library(RSQLite)
+
+# Create a connection to SQL database
+db_path <- "data"
+con <- dbConnect(RSQLite::SQLite(), dbname = db_path)
+
+# SQL Tasks
+
+### Budget allocated for project by each country and number of project per country
+
+query1 <- "
+SELECT Country, SUM(Budget) AS TotalBudget, COUNT(ProjectID) AS ProjectCount
+FROM Projects
+GROUP BY Country
+ORDER BY TotalBudget DESC;
+"
+result1 <- dbGetQuery(con, query1)
+print(result1)
+
+### Average development time per project, by assets used
+
+query2 <- "
+SELECT COUNT(AssetID) AS AssetCount, AVG(JULIANDAY(EndDate) - JULIANDAY(StartDate)) AS AvgDevelopmentTime
+FROM Projects
+JOIN Assets ON Projects.ProjectID = Assets.ProjectID
+GROUP BY AssetCount;
+"
+result2 <- dbGetQuery(con, query2)
+print(result2)
+
+### Top 3 developers based on successful projects
+
+query3 <- "
+SELECT DeveloperID, COUNT(ProjectID) AS SuccessfulProjects
+FROM Projects
+WHERE Status = 'Completed'
+GROUP BY DeveloperID
+ORDER BY SuccessfulProjects DESC
+LIMIT 3;
+"
+result3 <- dbGetQuery(con, query3)
+print(result3)
+
+
+# SQL concepts
+
+### SELECT with LIKE and OR
+
+query_like_or <- "
+SELECT ProjectName
+FROM Projects
+WHERE ProjectName LIKE '%Game%' OR ProjectName LIKE '%Adventure%';
+"
+result_like_or <- dbGetQuery(con, query_like_or)
+print(result_like_or)
+
+### SELECT with DISTINCT and ORDER BY
+
+query_distinct_order <- "
+SELECT DISTINCT Country
+FROM Projects
+ORDER BY Country;
+"
+result_distinct_order <- dbGetQuery(con, query_distinct_order)
+print(result_distinct_order)
+
+### Subquery with SELECT
+
+query_subquery <- "
+SELECT DeveloperID
+FROM Projects
+WHERE Budget > (SELECT AVG(Budget) FROM Projects);
+"
+result_subquery <- dbGetQuery(con, query_subquery)
+print(result_subquery)

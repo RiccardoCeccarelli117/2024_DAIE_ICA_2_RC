@@ -1,0 +1,36 @@
+---
+title: "Your Project Title"
+author: "Your Name"
+date: "2024-12-06"
+output: html_document
+---
+
+# Part A - SQL Queries
+
+## Query 1: Total Budget by Country
+
+\`\`\`{r}
+
+print(result1)
+
+## Query 2: Average Development Time
+
+print(result2)
+
+## Query 3: Top Developers
+
+print(result3)
+
+# General SQL Concepts
+
+### LIKE and OR
+
+print(result_like_or)
+
+### DISTINCT and ORDER BY
+
+print(result_distinct_order)
+
+## Subquery
+
+print(result_subquery)
