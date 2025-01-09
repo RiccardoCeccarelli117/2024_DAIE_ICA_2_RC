@@ -1,10 +1,3 @@
----
-title: "Your Project Title"
-author: "Your Name"
-date: "2024-12-06"
-output: html_document
----
-
 # Part A - SQL Queries
 
 ## Query 1: Total Budget by Country

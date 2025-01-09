@@ -1,3 +1,5 @@
+# Part A
+
 # Install SQL package
 install.packages("DBI")
 install.packages("RSQLite")
@@ -7,18 +9,34 @@ library(DBI)
 library(RSQLite)
 
 # Create a connection to SQL database
-db_path <- "data"
+db_path <- "data/ICA_2023.sqlite"
 con <- dbConnect(RSQLite::SQLite(), dbname = db_path)
+
+dbListTables(con)
+
+projects_table <- dbGetQuery(con, "SELECT * FROM Projects")
+assets_table <- dbGetQuery(con, "SELECT * FROM Assets")
+timelines_table <- dbGetQuery(con, "SELECT * FROM Timelines")
+customers_table <- dbGetQuery(con, "SELECT * FROM Customers")
+developers_table <- dbGetQuery(con, "SELECT * FROM Developers")
+projectdevelopers_table <- dbGetQuery(con, "SELECT * FROM ProjectDevelopers")
+assetsdevelopers_table <- dbGetQuery(con, "SELECT * FROM AssetsDevelopers")
 
 # SQL Tasks
 
 ### Budget allocated for project by each country and number of project per country
 
 query1 <- "
-SELECT Country, SUM(Budget) AS TotalBudget, COUNT(ProjectID) AS ProjectCount
-FROM Projects
-GROUP BY Country
-ORDER BY TotalBudget DESC;
+SELECT 
+  CustomerCountry AS Country, SUM(Budget) AS TotalBudget, COUNT(ProjectID) AS ProjectCount
+FROM 
+  Projects
+JOIN
+  Customers
+GROUP BY 
+  CustomerCountry
+ORDER BY 
+  TotalBudget DESC;
 "
 result1 <- dbGetQuery(con, query1)
 print(result1)
@@ -63,9 +81,9 @@ print(result_like_or)
 ### SELECT with DISTINCT and ORDER BY
 
 query_distinct_order <- "
-SELECT DISTINCT Country
+SELECT DISTINCT StartDate
 FROM Projects
-ORDER BY Country;
+ORDER BY StartDate;
 "
 result_distinct_order <- dbGetQuery(con, query_distinct_order)
 print(result_distinct_order)
@@ -79,3 +97,8 @@ WHERE Budget > (SELECT AVG(Budget) FROM Projects);
 "
 result_subquery <- dbGetQuery(con, query_subquery)
 print(result_subquery)
+
+# Closing SQL database connection
+dbDisconnect(con)
+
+
