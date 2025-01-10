@@ -1,4 +1,4 @@
-# Part A
+# Part A - SQL
 
 # Install SQL package
 install.packages("DBI")
@@ -24,7 +24,7 @@ assetsdevelopers_table <- dbGetQuery(con, "SELECT * FROM AssetsDevelopers")
 
 # SQL Tasks
 
-### Budget allocated for project by each country and number of project per country
+### Budget allocated for project by each country and number of project per country (JOIN Projects and Customers)
 
 query1 <- "
 SELECT 
@@ -44,23 +44,40 @@ print(result1)
 ### Average development time per project, by assets used
 
 query2 <- "
-SELECT COUNT(AssetID) AS AssetCount, AVG(JULIANDAY(EndDate) - JULIANDAY(StartDate)) AS AvgDevelopmentTime
-FROM Projects
-JOIN Assets ON Projects.ProjectID = Assets.ProjectID
-GROUP BY AssetCount;
+SELECT 
+  Projects.ProjectID, 
+  COUNT(AssetID) AS AssetCount, 
+  AVG(JULIANDAY(EndDate) - JULIANDAY(StartDate)) AS AvgDevelopmentTime
+FROM 
+  Projects
+JOIN 
+  Assets ON 
+    Projects.ProjectID = Assets.ProjectID
+GROUP BY 
+  Projects.ProjectID;
 "
+
+# Execute the grouped query
 result2 <- dbGetQuery(con, query2)
 print(result2)
 
-### Top 3 developers based on successful projects
+### Top 3 developers based on successful projects (JOIN Projects and Developers Table)
 
 query3 <- "
-SELECT DeveloperID, COUNT(ProjectID) AS SuccessfulProjects
-FROM Projects
-WHERE Status = 'Completed'
-GROUP BY DeveloperID
-ORDER BY SuccessfulProjects DESC
-LIMIT 3;
+SELECT 
+  DeveloperID, COUNT(ProjectID) AS SuccessfulProjects
+FROM 
+  Projects
+JOIN
+  Developers
+WHERE
+  Status = 'Completed'
+GROUP BY 
+  DeveloperID
+ORDER BY 
+  SuccessfulProjects DESC
+LIMIT 
+  3;
 "
 result3 <- dbGetQuery(con, query3)
 print(result3)
@@ -71,9 +88,12 @@ print(result3)
 ### SELECT with LIKE and OR
 
 query_like_or <- "
-SELECT ProjectName
-FROM Projects
-WHERE ProjectName LIKE '%Game%' OR ProjectName LIKE '%Adventure%';
+SELECT 
+  ProjectName
+FROM 
+  Projects
+WHERE 
+  ProjectName LIKE '%Game%' OR ProjectName LIKE '%Adventure%';
 "
 result_like_or <- dbGetQuery(con, query_like_or)
 print(result_like_or)
@@ -81,19 +101,28 @@ print(result_like_or)
 ### SELECT with DISTINCT and ORDER BY
 
 query_distinct_order <- "
-SELECT DISTINCT StartDate
-FROM Projects
-ORDER BY StartDate;
+SELECT 
+  DISTINCT 
+    StartDate
+FROM 
+  Projects
+ORDER BY 
+  StartDate;
 "
 result_distinct_order <- dbGetQuery(con, query_distinct_order)
 print(result_distinct_order)
 
-### Subquery with SELECT
+### Subquery with SELECT 
 
 query_subquery <- "
-SELECT DeveloperID
-FROM Projects
-WHERE Budget > (SELECT AVG(Budget) FROM Projects);
+SELECT 
+  DeveloperID
+FROM 
+  Projects
+JOIN
+  Developers
+WHERE 
+  Budget > (SELECT AVG(Budget) FROM Projects);
 "
 result_subquery <- dbGetQuery(con, query_subquery)
 print(result_subquery)
