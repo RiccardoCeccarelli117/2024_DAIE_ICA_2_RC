@@ -1,4 +1,7 @@
 ---
+title: "Interactive RDMBS data with Quarto"
+author: "Riccardo Ceccarelli"
+date: "`r Sys.Date()`"
 format: html
 ---
 
@@ -6,6 +9,7 @@ format: html
 ## Part A - SQL
 
 ```{r}
+#| label: SQL 
 # Install SQL package
 install.packages("DBI")
 install.packages("RSQLite")
@@ -139,6 +143,7 @@ print(result_subquery)
 ## Part B - Linear Regression
 
 ```{r}
+#| label: Linear Regression
 
 # load libraries
 library(DBI)

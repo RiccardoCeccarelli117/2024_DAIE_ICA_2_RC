@@ -1,0 +1,125 @@
+---
+title: "Interactive RDMBS data with Shiny"
+author: "Riccardo Ceccarelli"
+date: "`r Sys.Date()`"
+format: html 
+    embed-resources: true
+runtime: shiny
+---
+
+
+
+
+```{r setup, include=FALSE}
+install.packages("DBI")
+install.packages("RSQLite")
+install.packages("shiny")
+install.packages("ggplot2")
+
+library(shiny)
+library(DBI)
+library(RSQLite)
+library(ggplot2)
+```
+
+
+## Create a User Interface for Shiny
+```{r ui}
+
+# Define UI for the application
+ui <- fluidPage(
+  titlePanel("Game Development Data Dashboard"),
+  
+  # Create a tabset panel for navigation
+    tabsetPanel(
+      tabPanel("Data View",
+             sidebarLayout(
+               sidebarPanel(
+                 # Add input fields for user interaction
+                 selectInput("developer", "Select Developer:", choices = NULL),
+                 dateRangeInput("dateRange", "Select Date Range:", start = "2020-01-01", end = Sys.Date())
+               ),
+               mainPanel(
+                 tableOutput("dataTable")  # Output for the data table
+               )
+             )
+    ),
+    tabPanel("Plot View",
+             sidebarLayout(
+               sidebarPanel(
+                 # Add input fields for user interaction
+                 selectInput("plotDeveloper", "Select Developer for Plot:", choices = NULL),
+                 sliderInput("budgetRange", "Select Budget Range:", min = 0, max = 1000000, value = c(0, 1000000))
+               ),
+               mainPanel(
+                 plotOutput("successPlot")  # Output for the plot
+               )
+             )
+    )
+  )
+)
+```
+
+
+
+## Create a Server Logic
+
+```{r server}
+# Define server logic
+server <- function(input, output, session) {
+  
+  # Connect to the database
+  con <- dbConnect(RSQLite::SQLite(), dbname = "data/ICA_2023.sqlite")  # Replace with your database path
+  
+  # Load developers for the selectInput
+  developers <- dbGetQuery(con, "SELECT DISTINCT DeveloperID FROM Developers")
+  updateSelectInput(session, "developer", choices = developers$DeveloperID)
+  updateSelectInput(session, "plotDeveloper", choices = developers$DeveloperID)
+  
+  # Data View: Render the data table based on user input
+  output$dataTable <- renderTable({
+    req(input$developer, input$dateRange)
+    
+    # Query to filter data based on user input
+    query <- sprintf("SELECT * FROM Projects WHERE DeveloperID = '%s' AND StartDate BETWEEN '%s' AND '%s'",
+                     input$developer, input$dateRange[1], input$dateRange[2])
+    data <- dbGetQuery(con, query)
+    return(data)
+  })
+  
+  # Plot View: Render the plot based on user input
+  output$successPlot <- renderPlot({
+    req(input$plotDeveloper, input$budgetRange)
+    
+    # Query to filter data for plotting
+    query <- sprintf("SELECT Budget, SuccessRate FROM Projects WHERE DeveloperID = '%s' AND Budget BETWEEN %d AND %d",
+                     input$plotDeveloper, input$budgetRange[1], input$budgetRange[2])
+    plotData <- dbGetQuery(con, query)
+    
+    # Create the plot
+    ggplot(plotData, aes(x = Budget, y = SuccessRate)) +
+      geom_point() +
+      geom_smooth(method = "lm", se = FALSE) +
+      labs(title = "Success Rate vs Budget",
+           x = "Budget",
+           y = "Success Rate") +
+      theme_minimal()
+  })
+  
+  # Disconnect from the database when the session ends
+  onSessionEnded(function() {
+    dbDisconnect(con)
+  })
+}
+
+```
+
+```{r run-app}
+shinyApp(ui = ui, server = server)
+```
+
+```{r}
+quarto::quarto_render("part_c_shiny.qmd")
+```
+
+
