@@ -50,10 +50,10 @@ merged_LR_data <- merge(merged_LR_data, projects, by = "ProjectID")
 
 print(merged_LR_data)
 
-### Calculate SuccessRate as ExperienceYears (multiplied by 10000 to make it coherent with budget) divided by Budget, expressed as a percentage
+# Calculate SuccessRate as ExperienceYears (multiplied by 10000 to make it coherent with budget) divided by Budget, expressed as a percentage
 merged_LR_data$SuccessRate <- with(merged_LR_data, ((ExperienceYears * 10000 / Budget) * 100))
 
-### Print the SuccessRate column
+# Print the SuccessRate column
 print(merged_LR_data$SuccessRate)
 
 ## Perform a linear regression to predict the success rate
@@ -63,21 +63,6 @@ SR_model <- lm(merged_LR_data$SuccessRate ~ Budget + AverageExperience, data = S
 
 ### Summary of the model
 summary(SR_model)
-
-## Data Visualization
-
-#### install.packages("ggplot2")
-library(ggplot2)
-
-### Create a ggplot scatter plot with a regression line
-
-ggplot(merged_LR_data, aes(x = Budget, y = SuccessRate)) +
-geom_point(color = "blue", size = 2) +  # Scatter points
-geom_smooth(method = "lm", color = "red", se = FALSE) +  # Regression line
-labs(title = "Linear Regression of Success Rate on Budget",
-       x = "Budget",
-       y = "Success Rate") +
-  theme_minimal()
 
 # Close the database connection
 dbDisconnect(con)

@@ -1,29 +1,226 @@
-# Part A - SQL Queries
+---
+format: html
+---
 
-## Query 1: Total Budget by Country
 
-\`\`\`{r}
+## Part A - SQL
 
+```{r}
+# Install SQL package
+install.packages("DBI")
+install.packages("RSQLite")
+
+# load libraries
+library(DBI)
+library(RSQLite)
+
+# Create a connection to SQL database
+db_path <- "data/ICA_2023.sqlite"
+con <- dbConnect(RSQLite::SQLite(), dbname = db_path)
+
+dbListTables(con)
+
+projects_table <- dbGetQuery(con, "SELECT * FROM Projects")
+assets_table <- dbGetQuery(con, "SELECT * FROM Assets")
+timelines_table <- dbGetQuery(con, "SELECT * FROM Timelines")
+customers_table <- dbGetQuery(con, "SELECT * FROM Customers")
+developers_table <- dbGetQuery(con, "SELECT * FROM Developers")
+projectdevelopers_table <- dbGetQuery(con, "SELECT * FROM ProjectDevelopers")
+assetsdevelopers_table <- dbGetQuery(con, "SELECT * FROM AssetsDevelopers")
+
+# SQL Tasks
+
+### Budget allocated for project by each country and number of project per country (JOIN Projects and Customers)
+
+query1 <- "
+SELECT 
+  CustomerCountry AS Country, SUM(Budget) AS TotalBudget, COUNT(ProjectID) AS ProjectCount
+FROM 
+  Projects
+JOIN
+  Customers
+GROUP BY 
+  CustomerCountry
+ORDER BY 
+  TotalBudget DESC;
+"
+result1 <- dbGetQuery(con, query1)
 print(result1)
 
-## Query 2: Average Development Time
+### Average development time per project, by assets used
 
+query2 <- "
+SELECT 
+  Projects.ProjectID, 
+  COUNT(AssetID) AS AssetCount, 
+  AVG(JULIANDAY(EndDate) - JULIANDAY(StartDate)) AS AvgDevelopmentTime
+FROM 
+  Projects
+JOIN 
+  Assets ON 
+    Projects.ProjectID = Assets.ProjectID
+GROUP BY 
+  Projects.ProjectID;
+"
+
+# Execute the grouped query
+result2 <- dbGetQuery(con, query2)
 print(result2)
 
-## Query 3: Top Developers
+### Top 3 developers based on successful projects (JOIN Projects and Developers Table)
 
+query3 <- "
+SELECT 
+  DeveloperID, COUNT(ProjectID) AS SuccessfulProjects
+FROM 
+  Projects
+JOIN
+  Developers
+WHERE
+  Status = 'Completed'
+GROUP BY 
+  DeveloperID
+ORDER BY 
+  SuccessfulProjects DESC
+LIMIT 
+  3;
+"
+result3 <- dbGetQuery(con, query3)
 print(result3)
 
-# General SQL Concepts
 
-### LIKE and OR
+# SQL concepts
 
+### SELECT with LIKE and OR
+
+query_like_or <- "
+SELECT 
+  ProjectName
+FROM 
+  Projects
+WHERE 
+  ProjectName LIKE '%Game%' OR ProjectName LIKE '%Adventure%';
+"
+result_like_or <- dbGetQuery(con, query_like_or)
 print(result_like_or)
 
-### DISTINCT and ORDER BY
+### SELECT with DISTINCT and ORDER BY
 
+query_distinct_order <- "
+SELECT 
+  DISTINCT 
+    StartDate
+FROM 
+  Projects
+ORDER BY 
+  StartDate;
+"
+result_distinct_order <- dbGetQuery(con, query_distinct_order)
 print(result_distinct_order)
 
-## Subquery
+### Subquery with SELECT 
 
+query_subquery <- "
+SELECT 
+  DeveloperID
+FROM 
+  Projects
+JOIN
+  Developers
+WHERE 
+  Budget > (SELECT AVG(Budget) FROM Projects);
+"
+result_subquery <- dbGetQuery(con, query_subquery)
 print(result_subquery)
+```
+
+
+
+## Part B - Linear Regression
+
+```{r}
+
+# load libraries
+library(DBI)
+library(RSQLite)
+
+# Create a connection to SQL database
+db_path <- "data/ICA_2023.sqlite"
+con <- dbConnect(RSQLite::SQLite(), dbname = db_path)
+
+# Use Budget (under Projects) and ExperienceYears (under Developers) to predict success rate with a linear regression
+
+### Calculate the average experience years per every project
+
+queryA <- "
+SELECT 
+    p.Budget, 
+    AVG(d.ExperienceYears) AS AverageExperience
+FROM 
+    Projects p
+JOIN 
+    ProjectDevelopers pd ON p.ProjectID = pd.ProjectID
+JOIN 
+    Developers d ON pd.DeveloperID = d.DeveloperID
+GROUP BY 
+    p.ProjectID
+HAVING 
+    p.Budget IS NOT NULL AND AVG(d.ExperienceYears) IS NOT NULL;
+"
+
+# Execute the query and store the result in a data frame
+SR_data <- dbGetQuery(con, queryA)
+
+print(SR_data)
+
+## Create a success rate variable, which is budget/ExperienceYears
+
+### Load Projects and Developers tables
+projects <- dbGetQuery(con, "SELECT ProjectID, Budget FROM Projects")
+developers <- dbGetQuery(con, "SELECT DeveloperID, ExperienceYears FROM Developers")
+
+### Load the linking table (merges ProjectID and DeveloperID into one)
+project_developers <- dbGetQuery(con, "SELECT ProjectID, DeveloperID FROM ProjectDevelopers")
+
+### Merge the project_developers with developers
+merged_LR_data <- merge(project_developers, developers, by = "DeveloperID")
+
+### Now merge with projects
+merged_LR_data <- merge(merged_LR_data, projects, by = "ProjectID")
+
+print(merged_LR_data)
+
+### Calculate SuccessRate as ExperienceYears (multiplied by 10000 to make it coherent with budget) divided by Budget, expressed as a percentage
+merged_LR_data$SuccessRate <- with(merged_LR_data, ((ExperienceYears * 10000 / Budget) * 100))
+
+### Print the SuccessRate column
+print(merged_LR_data$SuccessRate)
+
+## Perform a linear regression to predict the success rate
+
+### Fit a linear regression model
+SR_model <- lm(merged_LR_data$SuccessRate ~ Budget + AverageExperience, data = SR_data)
+
+### Summary of the model
+summary(SR_model)
+
+## Data Visualization
+
+#### install.packages("ggplot2")
+library(ggplot2)
+
+### Create a ggplot scatter plot with a regression line
+
+ggplot(merged_LR_data, aes(x = Budget, y = SuccessRate)) +
+geom_point(color = "blue", size = 2) +  # Scatter points
+geom_smooth(method = "lm", color = "red", se = FALSE) +  # Regression line
+labs(title = "Linear Regression of Success Rate on Budget",
+       x = "Budget",
+       y = "Success Rate") +
+  theme_minimal()
+
+# Close the database connection
+dbDisconnect(con)
+```
+
+

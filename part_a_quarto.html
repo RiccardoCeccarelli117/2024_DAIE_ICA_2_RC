@@ -46,35 +46,55 @@ ul.task-list li input[type="checkbox"] {
 
 
 
-<section id="part-a---sql-queries" class="level1">
-<h1>Part A - SQL Queries</h1>
-<section id="query-1-total-budget-by-country" class="level2">
-<h2 class="anchored" data-anchor-id="query-1-total-budget-by-country">Query 1: Total Budget by Country</h2>
-<p>```{r}</p>
-<p>print(result1)</p>
+<section id="part-a---sql" class="level1">
+<h1>Part A - SQL</h1>
 </section>
-<section id="query-2-average-development-time" class="level2">
-<h2 class="anchored" data-anchor-id="query-2-average-development-time">Query 2: Average Development Time</h2>
-<p>print(result2)</p>
+<section id="install-sql-package" class="level1">
+<h1>Install SQL package</h1>
+<p>install.packages(“DBI”) install.packages(“RSQLite”)</p>
 </section>
-<section id="query-3-top-developers" class="level2">
-<h2 class="anchored" data-anchor-id="query-3-top-developers">Query 3: Top Developers</h2>
-<p>print(result3)</p>
+<section id="load-libraries" class="level1">
+<h1>load libraries</h1>
+<p>library(DBI) library(RSQLite)</p>
+</section>
+<section id="create-a-connection-to-sql-database" class="level1">
+<h1>Create a connection to SQL database</h1>
+<p>db_path &lt;- “data/ICA_2023.sqlite” con &lt;- dbConnect(RSQLite::SQLite(), dbname = db_path)</p>
+<p>dbListTables(con)</p>
+<p>projects_table &lt;- dbGetQuery(con, “SELECT * FROM Projects”) assets_table &lt;- dbGetQuery(con, “SELECT * FROM Assets”) timelines_table &lt;- dbGetQuery(con, “SELECT * FROM Timelines”) customers_table &lt;- dbGetQuery(con, “SELECT * FROM Customers”) developers_table &lt;- dbGetQuery(con, “SELECT * FROM Developers”) projectdevelopers_table &lt;- dbGetQuery(con, “SELECT * FROM ProjectDevelopers”) assetsdevelopers_table &lt;- dbGetQuery(con, “SELECT * FROM AssetsDevelopers”)</p>
+</section>
+<section id="sql-tasks" class="level1">
+<h1>SQL Tasks</h1>
+<section id="budget-allocated-for-project-by-each-country-and-number-of-project-per-country-join-projects-and-customers" class="level3">
+<h3 class="anchored" data-anchor-id="budget-allocated-for-project-by-each-country-and-number-of-project-per-country-join-projects-and-customers">Budget allocated for project by each country and number of project per country (JOIN Projects and Customers)</h3>
+<p>query1 &lt;- ” SELECT CustomerCountry AS Country, SUM(Budget) AS TotalBudget, COUNT(ProjectID) AS ProjectCount FROM Projects JOIN Customers GROUP BY CustomerCountry ORDER BY TotalBudget DESC; ” result1 &lt;- dbGetQuery(con, query1) print(result1)</p>
+</section>
+<section id="average-development-time-per-project-by-assets-used" class="level3">
+<h3 class="anchored" data-anchor-id="average-development-time-per-project-by-assets-used">Average development time per project, by assets used</h3>
+<p>query2 &lt;- ” SELECT Projects.ProjectID, COUNT(AssetID) AS AssetCount, AVG(JULIANDAY(EndDate) - JULIANDAY(StartDate)) AS AvgDevelopmentTime FROM Projects JOIN Assets ON Projects.ProjectID = Assets.ProjectID GROUP BY Projects.ProjectID; ”</p>
 </section>
 </section>
-<section id="general-sql-concepts" class="level1">
-<h1>General SQL Concepts</h1>
-<section id="like-and-or" class="level3">
-<h3 class="anchored" data-anchor-id="like-and-or">LIKE and OR</h3>
-<p>print(result_like_or)</p>
+<section id="execute-the-grouped-query" class="level1">
+<h1>Execute the grouped query</h1>
+<p>result2 &lt;- dbGetQuery(con, query2) print(result2)</p>
+<section id="top-3-developers-based-on-successful-projects-join-projects-and-developers-table" class="level3">
+<h3 class="anchored" data-anchor-id="top-3-developers-based-on-successful-projects-join-projects-and-developers-table">Top 3 developers based on successful projects (JOIN Projects and Developers Table)</h3>
+<p>query3 &lt;- ” SELECT DeveloperID, COUNT(ProjectID) AS SuccessfulProjects FROM Projects JOIN Developers WHERE Status = ‘Completed’ GROUP BY DeveloperID ORDER BY SuccessfulProjects DESC LIMIT 3; ” result3 &lt;- dbGetQuery(con, query3) print(result3)</p>
 </section>
-<section id="distinct-and-order-by" class="level3">
-<h3 class="anchored" data-anchor-id="distinct-and-order-by">DISTINCT and ORDER BY</h3>
-<p>print(result_distinct_order)</p>
 </section>
-<section id="subquery" class="level2">
-<h2 class="anchored" data-anchor-id="subquery">Subquery</h2>
-<p>print(result_subquery)</p>
+<section id="sql-concepts" class="level1">
+<h1>SQL concepts</h1>
+<section id="select-with-like-and-or" class="level3">
+<h3 class="anchored" data-anchor-id="select-with-like-and-or">SELECT with LIKE and OR</h3>
+<p>query_like_or &lt;- ” SELECT ProjectName FROM Projects WHERE ProjectName LIKE ‘%Game%’ OR ProjectName LIKE ‘%Adventure%’; ” result_like_or &lt;- dbGetQuery(con, query_like_or) print(result_like_or)</p>
+</section>
+<section id="select-with-distinct-and-order-by" class="level3">
+<h3 class="anchored" data-anchor-id="select-with-distinct-and-order-by">SELECT with DISTINCT and ORDER BY</h3>
+<p>query_distinct_order &lt;- ” SELECT DISTINCT StartDate FROM Projects ORDER BY StartDate; ” result_distinct_order &lt;- dbGetQuery(con, query_distinct_order) print(result_distinct_order)</p>
+</section>
+<section id="subquery-with-select" class="level3">
+<h3 class="anchored" data-anchor-id="subquery-with-select">Subquery with SELECT</h3>
+<p>query_subquery &lt;- ” SELECT DeveloperID FROM Projects JOIN Developers WHERE Budget &gt; (SELECT AVG(Budget) FROM Projects); ” result_subquery &lt;- dbGetQuery(con, query_subquery) print(result_subquery)</p>
 </section>
 </section>
 
