@@ -33,9 +33,6 @@ SR_data <- dbGetQuery(con, queryA)
 
 print(SR_data)
 
-# Close the database connection
-dbDisconnect(con)
-
 ## Create a merged_SR_data to observe the success rate
 
 ### Load Projects and Developers tables
@@ -52,10 +49,12 @@ merged_LR_data <- merge(project_developers, developers, by = "DeveloperID")
 merged_LR_data <- merge(merged_LR_data, projects, by = "ProjectID")
 
 ### Calculate average experience per project
-average_experience <- aggregate(ExperienceYears ~ ProjectID + Budget + SuccessRate, 
+average_experience <- aggregate(ExperienceYears ~ ProjectID + Budget, 
                                 data = merged_data, 
                                 FUN = mean, 
                                 na.rm = TRUE)
+
+print(average_experience)
 
 ## Perform a linear regression to predict the success rate
 
@@ -64,3 +63,6 @@ SR_model <- lm(SuccessRate ~ Budget + AverageExperience, data = SR_data)
 
 ### Summary of the model
 summary(SR_model)
+
+# Close the database connection
+dbDisconnect(con)
