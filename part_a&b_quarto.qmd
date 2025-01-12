@@ -5,25 +5,37 @@ date: "`r Sys.Date()`"
 format: html
 ---
 
-
 ## Part A - SQL
 
-```{r}
+```{r setup, include=FALSE}
 #| label: SQL 
+#| include: false
+
 # Install SQL package
-install.packages("DBI")
-install.packages("RSQLite")
+if (!requireNamespace("DBI", quietly = TRUE)) install.packages("DBI")
+if (!requireNamespace("RSQLite", quietly = TRUE)) install.packages("RSQLite")
+if (!requireNamespace("ggplot2", quietly = TRUE)) install.packages("ggplot2")
 
 # load libraries
 library(DBI)
 library(RSQLite)
+library(ggplot2)
+```
+
+```{r}
+#| label: database_connection
 
 # Create a connection to SQL database
 db_path <- "data/ICA_2023.sqlite"
 con <- dbConnect(RSQLite::SQLite(), dbname = db_path)
 
 dbListTables(con)
+```
 
+```{r}
+#| label: fetch_data
+
+# Fetch data from tables
 projects_table <- dbGetQuery(con, "SELECT * FROM Projects")
 assets_table <- dbGetQuery(con, "SELECT * FROM Assets")
 timelines_table <- dbGetQuery(con, "SELECT * FROM Timelines")
@@ -31,11 +43,14 @@ customers_table <- dbGetQuery(con, "SELECT * FROM Customers")
 developers_table <- dbGetQuery(con, "SELECT * FROM Developers")
 projectdevelopers_table <- dbGetQuery(con, "SELECT * FROM ProjectDevelopers")
 assetsdevelopers_table <- dbGetQuery(con, "SELECT * FROM AssetsDevelopers")
+```
+
+```{r}
+#| label: sql_tasks
 
 # SQL Tasks
 
-### Budget allocated for project by each country and number of project per country (JOIN Projects and Customers)
-
+# Budget allocated for project by each country and number of project per country
 query1 <- "
 SELECT 
   CustomerCountry AS Country, SUM(Budget) AS TotalBudget, COUNT(ProjectID) AS ProjectCount
@@ -51,8 +66,7 @@ ORDER BY
 result1 <- dbGetQuery(con, query1)
 print(result1)
 
-### Average development time per project, by assets used
-
+# Average development time per project, by assets used
 query2 <- "
 SELECT 
   Projects.ProjectID, 
@@ -66,13 +80,10 @@ JOIN
 GROUP BY 
   Projects.ProjectID;
 "
-
-# Execute the grouped query
 result2 <- dbGetQuery(con, query2)
 print(result2)
 
-### Top 3 developers based on successful projects (JOIN Projects and Developers Table)
-
+# Top 3 developers based on successful projects
 query3 <- "
 SELECT 
   DeveloperID, COUNT(ProjectID) AS SuccessfulProjects
@@ -91,12 +102,14 @@ LIMIT
 "
 result3 <- dbGetQuery(con, query3)
 print(result3)
+```
 
+```{r}
+#| label: sql_concepts
 
 # SQL concepts
 
-### SELECT with LIKE and OR
-
+# SELECT with LIKE and OR
 query_like_or <- "
 SELECT 
   ProjectName
@@ -108,8 +121,7 @@ WHERE
 result_like_or <- dbGetQuery(con, query_like_or)
 print(result_like_or)
 
-### SELECT with DISTINCT and ORDER BY
-
+# SELECT with DISTINCT and ORDER BY
 query_distinct_order <- "
 SELECT 
   DISTINCT 
@@ -122,8 +134,7 @@ ORDER BY
 result_distinct_order <- dbGetQuery(con, query_distinct_order)
 print(result_distinct_order)
 
-### Subquery with SELECT 
-
+# Subquery with SELECT 
 query_subquery <- "
 SELECT 
   DeveloperID
@@ -144,14 +155,6 @@ print(result_subquery)
 
 ```{r}
 #| label: Linear Regression
-
-# load libraries
-library(DBI)
-library(RSQLite)
-
-# Create a connection to SQL database
-db_path <- "data/ICA_2023.sqlite"
-con <- dbConnect(RSQLite::SQLite(), dbname = db_path)
 
 # Use Budget (under Projects) and ExperienceYears (under Developers) to predict success rate with a linear regression
 
@@ -193,13 +196,15 @@ merged_LR_data <- merge(project_developers, developers, by = "DeveloperID")
 ### Now merge with projects
 merged_LR_data <- merge(merged_LR_data, projects, by = "ProjectID")
 
-print(merged_LR_data)
-
 ### Calculate SuccessRate as ExperienceYears (multiplied by 10000 to make it coherent with budget) divided by Budget, expressed as a percentage
 merged_LR_data$SuccessRate <- with(merged_LR_data, ((ExperienceYears * 10000 / Budget) * 100))
 
 ### Print the SuccessRate column
 print(merged_LR_data$SuccessRate)
+```
+
+```{r}
+#| label: linear_regression_model
 
 ## Perform a linear regression to predict the success rate
 
@@ -208,11 +213,10 @@ SR_model <- lm(merged_LR_data$SuccessRate ~ Budget + AverageExperience, data = S
 
 ### Summary of the model
 summary(SR_model)
+```
 
+```{r}
 ## Data Visualization
-
-#### install.packages("ggplot2")
-library(ggplot2)
 
 ### Create a ggplot scatter plot with a regression line
 
@@ -223,9 +227,16 @@ labs(title = "Linear Regression of Success Rate on Budget",
        x = "Budget",
        y = "Success Rate") +
   theme_minimal()
+```
+
+```{r}
+#| label: cleanup
+#| include: false
 
 # Close the database connection
 dbDisconnect(con)
 ```
+
+
 
 
