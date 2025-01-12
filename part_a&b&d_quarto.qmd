@@ -238,7 +238,7 @@ dbDisconnect(con)
 ```
 
 
-## Technology Exploration
+## Part D - Technology Exploration
 
 In this project, I utilized several R packages to effectively analyze and visualize data related to game development projects:
 
