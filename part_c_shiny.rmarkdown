@@ -1,0 +1,161 @@
+---
+title: "Interactive RDMBS data with Shiny"
+author: "Riccardo Ceccarelli"
+date: "`r Sys.Date()`"
+format: 
+  html:
+    embed-resources: true
+runtime: shiny
+---
+
+
+
+# For The time being, this Shiny Quarto doesn't render as it gets stuck on the first chunk, getting stuck in the loading at 91% despite theoretically being in the position to run.
+
+# Secondly, the Shiny application (ui and server), when run manually, doesn't find the DeveloperID column, despite me loading and joining both Projects and Developers tables.
+
+# This stops me from executing properly both Data Views and Plot views and therefore from creating a proper Shiny app.
+
+
+
+```{r}
+#| label: Install packages and load libraries
+
+if (!requireNamespace("DBI", quietly = TRUE)) install.packages("DBI")
+if (!requireNamespace("RSQLite", quietly = TRUE)) install.packages("RSQLite")
+if (!requireNamespace("ggplot2", quietly = TRUE)) install.packages("ggplot2")
+if (!requireNamespace("shiny", quietly = TRUE)) install.packages("shiny")
+
+library(DBI)
+library(RSQLite)
+library(ggplot2)
+library(shiny)
+```
+
+
+
+
+## Create a User Interface for Shiny
+
+
+
+```{r ui}
+
+# Define UI for the application
+ui <- fluidPage(
+  titlePanel("Game Development Data Dashboard"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("developer", "Select Developer:", choices = NULL),
+      dateRangeInput("dateRange", "Select Date Range:", 
+                     start = "2020-01-01", 
+                     end = Sys.Date())
+    ),
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Data View", tableOutput("dataTable")),
+        tabPanel("Plot View", plotOutput("successPlot"))
+      )
+    )
+  )
+)
+```
+
+
+
+## Create a Server Logic
+
+
+
+```{r server}
+# Define server logic
+server <- function(input, output, session) {
+  
+  # Connect to the database
+  con <- reactive({
+    tryCatch(
+      dbConnect(RSQLite::SQLite(), dbname = "data/ICA_2023.sqlite"),
+      error = function(e) {
+        showNotification("Failed to connect to database", type = "error")
+        NULL
+      }
+    )
+  })
+  
+  # Check table structures
+  observe({
+    req(con())
+    
+    projects_info <- dbGetQuery(con(), "PRAGMA table_info(Projects)")
+    developers_info <- dbGetQuery(con(), "PRAGMA table_info(Developers)")
+    
+    print("Projects table structure:")
+    print(projects_info)
+    
+    print("Developers table structure:")
+    print(developers_info)
+  })
+  
+  # Load developers for the selectInput
+  observe({
+    req(con())
+    developers <- dbGetQuery(con(), "SELECT DISTINCT DeveloperID FROM Developers")
+    updateSelectInput(session, "developer", choices = developers$DeveloperID)
+    updateSelectInput(session, "plotDeveloper", choices = developers$DeveloperID)
+  })
+  
+  # Data View: Render the data table based on user input
+  output$dataTable <- renderTable({
+    req(input$developer, input$dateRange, con())
+    
+    query <- "
+      SELECT p.*, d.DeveloperID
+      FROM Projects p
+      JOIN Developers d ON p.DeveloperID = d.DeveloperID
+      WHERE d.DeveloperID = ?
+        AND p.StartDate BETWEEN ? AND ?
+    "
+    
+    data <- dbGetQuery(con(), query, params = list(input$developer, input$dateRange[1], input$dateRange[2]))
+    return(data)
+  })
+  
+  # Plot View: Render the plot based on user input
+  output$successPlot <- renderPlot({
+    req(input$plotDeveloper, input$budgetRange, con())
+    
+    query <- "
+      SELECT p.Budget, p.SuccessRate
+      FROM Projects p
+      JOIN Developers d ON p.DeveloperID = d.DeveloperID
+      WHERE d.DeveloperID = ?
+        AND p.Budget BETWEEN ? AND ?
+    "
+    plotData <- dbGetQuery(con(), query, params = list(input$plotDeveloper, input$budgetRange[1], input$budgetRange[2]))
+    
+    ggplot(plotData, aes(x = Budget, y = SuccessRate)) +
+      geom_point() +
+      geom_smooth(method = "lm", se = FALSE) +
+      labs(title = "Success Rate vs Budget",
+           x = "Budget",
+           y = "Success Rate") +
+      theme_minimal()
+  })
+  
+  # Disconnect from the database when the session ends
+  onSessionEnded(function() {
+    if (!is.null(con())) {
+      dbDisconnect(con())
+    }
+  })
+}
+```
+
+```{r run-app}
+shinyApp(ui = ui, server = server)
+```
+
+```{r}
+quarto::quarto_render("part_c_shiny.qmd")
+```
+
