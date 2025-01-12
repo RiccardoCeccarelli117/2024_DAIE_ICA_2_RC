@@ -254,8 +254,10 @@ The `ggplot2` package was used to create a variety of visualizations that helped
 
 The `shiny` package was instrumental in developing an interactive web application that allows users to explore the data dynamically. The application features input fields for filtering data and visualizations that update in real-time based on user selections, enhancing the overall user experience.
 
-## Conclusion
+## Part E - Conclusion and reflections
 
-By focusing on these four packages, you can create a comprehensive data analysis project that effectively utilizes R's capabilities for database management, data visualization, and interactive web applications.
+In this project, I successfully utilized R packages such as `DBI`, `RSQLite`, `ggplot2`, and tried to leverage `shiny` to analyze and visualize data related to game development projects. The SQL queries provided valuable insights into project budgets, timelines, and success rates, while the visualizations created with `ggplot2` effectively communicated these findings.
 
+The idea behind the development of the Shiny app, I tried to create a more engaging environment to explore the data. This experience has deepened my understanding of data analytics and especially of the R Studio and R language as a whole.
 
+Overall, this project has equipped me with practical skills in data management, analysis, and visualization and made me explore coding in a more structured way for the first time in this course and in my life as a whole.
