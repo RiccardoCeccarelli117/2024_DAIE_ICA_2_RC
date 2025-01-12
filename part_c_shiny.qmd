@@ -2,65 +2,48 @@
 title: "Interactive RDMBS data with Shiny"
 author: "Riccardo Ceccarelli"
 date: "`r Sys.Date()`"
-format: html 
+format: 
+  html:
     embed-resources: true
 runtime: shiny
 ---
 
+# For The time being, this Shiny Quarto doesn't render as it gets stuck on the first chunk, getting stuck in the loading at 91% despite theoretically being in the position to run.
+
+# Secondly, the Shiny application (ui and server), when run manually, doesn't find the DeveloperID column, despite me loading and joining both Projects and Developers tables.
+
+# This stops me from executing properly both Data Views and Plot views and therefore from creating a proper Shiny app.
 
 
-
-```{r setup, include=FALSE}
-install.packages("DBI")
-install.packages("RSQLite")
-install.packages("shiny")
-install.packages("ggplot2")
-
+```{r setup}
+if (!require(shiny)) install.packages("shiny")
 library(shiny)
-library(DBI)
-library(RSQLite)
-library(ggplot2)
+
 ```
 
-
 ## Create a User Interface for Shiny
+
 ```{r ui}
 
 # Define UI for the application
 ui <- fluidPage(
   titlePanel("Game Development Data Dashboard"),
-  
-  # Create a tabset panel for navigation
-    tabsetPanel(
-      tabPanel("Data View",
-             sidebarLayout(
-               sidebarPanel(
-                 # Add input fields for user interaction
-                 selectInput("developer", "Select Developer:", choices = NULL),
-                 dateRangeInput("dateRange", "Select Date Range:", start = "2020-01-01", end = Sys.Date())
-               ),
-               mainPanel(
-                 tableOutput("dataTable")  # Output for the data table
-               )
-             )
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("developer", "Select Developer:", choices = NULL),
+      dateRangeInput("dateRange", "Select Date Range:", 
+                     start = "2020-01-01", 
+                     end = Sys.Date())
     ),
-    tabPanel("Plot View",
-             sidebarLayout(
-               sidebarPanel(
-                 # Add input fields for user interaction
-                 selectInput("plotDeveloper", "Select Developer for Plot:", choices = NULL),
-                 sliderInput("budgetRange", "Select Budget Range:", min = 0, max = 1000000, value = c(0, 1000000))
-               ),
-               mainPanel(
-                 plotOutput("successPlot")  # Output for the plot
-               )
-             )
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Data View", tableOutput("dataTable")),
+        tabPanel("Plot View", plotOutput("successPlot"))
+      )
     )
   )
 )
 ```
-
-
 
 ## Create a Server Logic
 
@@ -69,34 +52,67 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   # Connect to the database
-  con <- dbConnect(RSQLite::SQLite(), dbname = "data/ICA_2023.sqlite")  # Replace with your database path
+  con <- reactive({
+    tryCatch(
+      dbConnect(RSQLite::SQLite(), dbname = "data/ICA_2023.sqlite"),
+      error = function(e) {
+        showNotification("Failed to connect to database", type = "error")
+        NULL
+      }
+    )
+  })
+  
+  # Check table structures
+  observe({
+    req(con())
+    
+    projects_info <- dbGetQuery(con(), "PRAGMA table_info(Projects)")
+    developers_info <- dbGetQuery(con(), "PRAGMA table_info(Developers)")
+    
+    print("Projects table structure:")
+    print(projects_info)
+    
+    print("Developers table structure:")
+    print(developers_info)
+  })
   
   # Load developers for the selectInput
-  developers <- dbGetQuery(con, "SELECT DISTINCT DeveloperID FROM Developers")
-  updateSelectInput(session, "developer", choices = developers$DeveloperID)
-  updateSelectInput(session, "plotDeveloper", choices = developers$DeveloperID)
+  observe({
+    req(con())
+    developers <- dbGetQuery(con(), "SELECT DISTINCT DeveloperID FROM Developers")
+    updateSelectInput(session, "developer", choices = developers$DeveloperID)
+    updateSelectInput(session, "plotDeveloper", choices = developers$DeveloperID)
+  })
   
   # Data View: Render the data table based on user input
   output$dataTable <- renderTable({
-    req(input$developer, input$dateRange)
+    req(input$developer, input$dateRange, con())
     
-    # Query to filter data based on user input
-    query <- sprintf("SELECT * FROM Projects WHERE DeveloperID = '%s' AND StartDate BETWEEN '%s' AND '%s'",
-                     input$developer, input$dateRange[1], input$dateRange[2])
-    data <- dbGetQuery(con, query)
+    query <- "
+      SELECT p.*, d.DeveloperID
+      FROM Projects p
+      JOIN Developers d ON p.DeveloperID = d.DeveloperID
+      WHERE d.DeveloperID = ?
+        AND p.StartDate BETWEEN ? AND ?
+    "
+    
+    data <- dbGetQuery(con(), query, params = list(input$developer, input$dateRange[1], input$dateRange[2]))
     return(data)
   })
   
   # Plot View: Render the plot based on user input
   output$successPlot <- renderPlot({
-    req(input$plotDeveloper, input$budgetRange)
+    req(input$plotDeveloper, input$budgetRange, con())
     
-    # Query to filter data for plotting
-    query <- sprintf("SELECT Budget, SuccessRate FROM Projects WHERE DeveloperID = '%s' AND Budget BETWEEN %d AND %d",
-                     input$plotDeveloper, input$budgetRange[1], input$budgetRange[2])
-    plotData <- dbGetQuery(con, query)
+    query <- "
+      SELECT p.Budget, p.SuccessRate
+      FROM Projects p
+      JOIN Developers d ON p.DeveloperID = d.DeveloperID
+      WHERE d.DeveloperID = ?
+        AND p.Budget BETWEEN ? AND ?
+    "
+    plotData <- dbGetQuery(con(), query, params = list(input$plotDeveloper, input$budgetRange[1], input$budgetRange[2]))
     
-    # Create the plot
     ggplot(plotData, aes(x = Budget, y = SuccessRate)) +
       geom_point() +
       geom_smooth(method = "lm", se = FALSE) +
@@ -108,10 +124,11 @@ server <- function(input, output, session) {
   
   # Disconnect from the database when the session ends
   onSessionEnded(function() {
-    dbDisconnect(con)
+    if (!is.null(con())) {
+      dbDisconnect(con())
+    }
   })
 }
-
 ```
 
 ```{r run-app}
@@ -121,5 +138,3 @@ shinyApp(ui = ui, server = server)
 ```{r}
 quarto::quarto_render("part_c_shiny.qmd")
 ```
-
-
