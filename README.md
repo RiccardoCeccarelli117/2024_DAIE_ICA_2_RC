@@ -7,4 +7,4 @@ The first quarto document is rendered and you will find a HTML file with the sam
 
 SQL database is in /data
 
-You can find a zip of the folder here: https://studentdkit-my.sharepoint.com/:f:/g/personal/d00276951_student_dkit_ie/Erm6_aO_JCxMsECu5dy6-FUBX1eK2_ay62nsdcUjto5bQg?e=TC4He6
+You can find a zip of the project here: https://studentdkit-my.sharepoint.com/:f:/g/personal/d00276951_student_dkit_ie/Erm6_aO_JCxMsECu5dy6-FUBX1eK2_ay62nsdcUjto5bQg?e=TC4He6
