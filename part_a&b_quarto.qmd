@@ -238,5 +238,24 @@ dbDisconnect(con)
 ```
 
 
+## Technology Exploration
+
+In this project, I utilized several R packages to effectively analyze and visualize data related to game development projects:
+
+### DBI and RSQLite
+
+The `DBI` and `RSQLite` packages were employed to connect to and interact with an SQLite database containing information about various game development projects. These packages facilitated the execution of SQL queries to retrieve relevant data for analysis.
+
+### ggplot2
+
+The `ggplot2` package was used to create a variety of visualizations that helped in understanding trends and patterns in the data. For instance, I generated plots to illustrate the distribution of project budgets and the relationship between team size and project success rates.
+
+### Shiny
+
+The `shiny` package was instrumental in developing an interactive web application that allows users to explore the data dynamically. The application features input fields for filtering data and visualizations that update in real-time based on user selections, enhancing the overall user experience.
+
+## Conclusion
+
+By focusing on these four packages, you can create a comprehensive data analysis project that effectively utilizes R's capabilities for database management, data visualization, and interactive web applications.
 
 

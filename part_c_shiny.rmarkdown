@@ -8,11 +8,15 @@ format:
 runtime: shiny
 ---
 
+
+
 # For The time being, this Shiny Quarto doesn't render as it gets stuck on the first chunk, getting stuck in the loading at 91% despite theoretically being in the position to run.
 
 # Secondly, the Shiny application (ui and server), when run manually, doesn't find the DeveloperID column, despite me loading and joining both Projects and Developers tables.
 
 # This stops me from executing properly both Data Views and Plot views and therefore from creating a proper Shiny app.
+
+
 
 ```{r}
 #| label: Install packages and load libraries
@@ -29,7 +33,11 @@ library(shiny)
 ```
 
 
+
+
 ## Create a User Interface for Shiny
+
+
 
 ```{r ui}
 
@@ -53,7 +61,11 @@ ui <- fluidPage(
 )
 ```
 
+
+
 ## Create a Server Logic
+
+
 
 ```{r server}
 # Define server logic
@@ -146,3 +158,4 @@ shinyApp(ui = ui, server = server)
 ```{r}
 quarto::quarto_render("part_c_shiny.qmd")
 ```
+
